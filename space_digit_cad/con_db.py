@@ -18,7 +18,7 @@ class ConDb:
         output = StringIO()
         self.entities.to_csv(output, sep='\t', index=True, header=False)
         output1 = output.getvalue()
-        print("output1", output1)
+        # print("output1", output1)
         # 创建cursor以访问数据库
         cur = self.conn.cursor()
         # 批量插入数据

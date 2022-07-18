@@ -4,6 +4,7 @@
 # @Author: QHB
 
 from shapely.geometry import LineString, Point
+from log_write import all_log, error_log
 
 
 class CadParse:
@@ -16,39 +17,46 @@ class CadParse:
         for col, row in self.cad_msp_df.iteritems():
             drawing_name = col
             drawing_context = None
-            for r in row.dropna():
-                if r is not None:
-                    drawing_context = [entity for entity in r]
-            for entity in drawing_context:
-                # 提前设置内存空间存放不同类型的entity属性值
-                line_entity = None
-                text_entity = None
-                point_entity = None
-                insert_entity = None
-                if entity.dxf.dxftype == 'LINE':
-                    line_list = self.add_entity(drawing_name, entity.dxf.layer, 'LINE', self.parse_line(entity).wkt,
-                                                text_entity, point_entity, insert_entity)
-                    self.cad_entities_list.append(line_list)
-                    print("line", self.parse_line(entity))
-                elif entity.dxf.dxftype == 'INSERT':
-                    insert_list = self.add_entity(drawing_name, entity.dxf.layer, 'INSERT', line_entity,
-                                                  text_entity, point_entity, self.parse_insert(entity).wkt)
-                    self.cad_entities_list.append(insert_list)
-                    print("insert", self.parse_insert(entity))
-                elif entity.dxf.dxftype == 'LWPOLYLINE':
-                    line_list = self.add_entity(drawing_name, entity.dxf.layer, 'LWPOLYLINE',
-                                                self.parse_lwpolyline(entity).wkt,
-                                                text_entity, point_entity, insert_entity)
-                    self.cad_entities_list.append(line_list)
-                    print("lwpolyline", self.parse_lwpolyline(entity))
-                elif entity.dxf.dxftype == 'TEXT':
-                    text_list = self.add_entity(drawing_name, entity.dxf.layer, 'TEXT',
-                                                line_entity, self.parse_text(entity)[0], self.parse_text(entity)[1].wkt,
-                                                insert_entity)
-                    self.cad_entities_list.append(text_list)
-                    print("text", self.parse_text(entity))
-                else:
-                    pass
+            try:
+                for r in row.dropna():
+                    if r is not None:
+                        drawing_context = [entity for entity in r]
+                all_log.logger.info("开始解析 ", drawing_name, " 图纸中所有类型图元的信息: ------------------")
+                for entity in drawing_context:
+                    # 提前设置内存空间存放不同类型的entity属性值
+                    line_entity = None
+                    text_entity = None
+                    point_entity = None
+                    insert_entity = None
+                    if entity.dxf.dxftype == 'LINE':
+                        line_list = self.add_entity(drawing_name, entity.dxf.layer, 'LINE', self.parse_line(entity).wkt,
+                                                    text_entity, point_entity, insert_entity)
+                        self.cad_entities_list.append(line_list)
+                        # print("line", self.parse_line(entity))
+                    elif entity.dxf.dxftype == 'INSERT':
+                        insert_list = self.add_entity(drawing_name, entity.dxf.layer, 'INSERT', line_entity,
+                                                      text_entity, point_entity, self.parse_insert(entity).wkt)
+                        self.cad_entities_list.append(insert_list)
+                        # print("insert", self.parse_insert(entity))
+                    elif entity.dxf.dxftype == 'LWPOLYLINE':
+                        line_list = self.add_entity(drawing_name, entity.dxf.layer, 'LWPOLYLINE',
+                                                    self.parse_lwpolyline(entity).wkt,
+                                                    text_entity, point_entity, insert_entity)
+                        self.cad_entities_list.append(line_list)
+                        # print("lwpolyline", self.parse_lwpolyline(entity))
+                    elif entity.dxf.dxftype == 'TEXT':
+                        text_list = self.add_entity(drawing_name, entity.dxf.layer, 'TEXT',
+                                                    line_entity, self.parse_text(entity)[0],
+                                                    self.parse_text(entity)[1].wkt,
+                                                    insert_entity)
+                        self.cad_entities_list.append(text_list)
+                        # print("text", self.parse_text(entity))
+                    else:
+                        pass
+            except Exception:
+                error_log.logger.error("图元解析失败.", drawing_name, drawing_context)
+            else:
+                all_log.logger.info("解析出的图元数量为: ", len(self.cad_entities_list))
 
     @staticmethod
     def parse_text(entity):
